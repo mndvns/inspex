@@ -8,6 +8,9 @@ defmodule Test.Inspex do
       sigil: "@",
       drop: [:baz],
       take: [:foo, :qux, :fin],
+      omit_values: ["hi qux"],
+      omit_pairs: [fin: 300],
+      omit_keys: [:fen],
     ]
 
     defstruct [
@@ -15,6 +18,7 @@ defmodule Test.Inspex do
       baz: "qwe",
       qux: "zin",
       fin: 200,
+      fen: nil,
     ]
   end
 
@@ -23,7 +27,8 @@ defmodule Test.Inspex do
       foo: "hi foo",
       baz: "i'm hidden",
       qux: "hi qux",
-      fin: 200
+      fin: 300,
+      fen: 100,
     }
   end
 end
