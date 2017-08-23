@@ -11,7 +11,7 @@ defmodule Inspex do
     Module.put_attribute(module, :inspex_omit_pairs, Keyword.get(opts, :omit_pairs, []))
     Module.put_attribute(module, :inspex_omit_default_values, Keyword.get(opts, :omit_default_values, true))
 
-    quote do
+    quote location: :keep do
       @before_compile unquote(__MODULE__)
     end
   end
@@ -26,35 +26,55 @@ defmodule Inspex do
     inspex_omit_pairs = Module.get_attribute(module, :inspex_omit_pairs)
     inspex_omit_default_values = Module.get_attribute(module, :inspex_omit_default_values)
 
-    quote do
+    # TODO find a better way to compose clauses
+
+    clauses = [quote do
+      _ -> false
+    end]
+
+    clauses = if length(inspex_omit_pairs) > 0 do
+      [quote do
+        pair when pair in unquote(inspex_omit_pairs) -> true
+      end | clauses]
+    end || clauses
+
+    clauses = if length(inspex_omit_values) > 0 do
+      [quote do
+        {_key, value} when value in unquote(inspex_omit_values) -> true
+      end | clauses]
+    end || clauses
+
+    clauses = if length(inspex_omit_keys) > 0 do
+      [quote do
+        {key, _value} when key in unquote(inspex_omit_keys) -> true
+      end | clauses]
+    end || clauses
+
+    clauses = Enum.map(clauses, &hd/1)
+
+    clauses = {:fn, [], clauses}
+
+    quote location: :keep do
+
       def __inspex_inspect__(conf, opts) do
         content = Map.from_struct(conf)
 
         unquote(if inspex_drop do
-          quote do
+          quote location: :keep do
             content = Map.drop(content, unquote(inspex_drop))
           end
         end)
 
         unquote(if inspex_take do
-          quote do
+          quote location: :keep do
             content = Map.take(content, unquote(inspex_take))
           end
         end)
 
-        unquote(if inspex_omit_values do
-          quote do
-            content = Stream.reject(content, fn
-              {key, _value} when key in unquote(inspex_omit_keys || []) -> true
-              {_key, value} when value in unquote(inspex_omit_values || []) -> true
-              pair when pair in unquote(inspex_omit_pairs || []) -> true
-              _ -> false
-            end)
-          end
-        end)
+        content = Stream.reject(content, unquote(clauses))
 
         unquote(if inspex_omit_default_values do
-          quote do
+          quote location: :keep do
             default = %__MODULE__{}
             content = Stream.reject(content, fn {key, value} -> Map.get(default, key) == value end)
           end
