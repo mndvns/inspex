@@ -4,7 +4,7 @@ defmodule Inspex.Mixfile do
   def project do
     [
       app: :inspex,
-      version: "0.1.1",
+      version: "0.1.2",
       description: "simple Inspect protocol wrapper",
       consolidate_protocols: Mix.env != :test,
       start_permanent: Mix.env == :prod,
